@@ -2,11 +2,22 @@
 
 UrbanMove is a production-ready cloud-native backend and frontend prototype for a smart mobility platform. It handles user authentication, trip management, real-time vehicle simulation, and analytics.
 
-## 🏗 Architecture Overview
+## 🏗 Full Cloud Architecture Overview
+
+UrbanMove implements a multi-layer cloud-native architecture designed for scalability, resilience, and security.
+
+### Architectural Layers
+- **User Layer**: Mobile and web clients interacting via HTTPS.
+- **Frontend Layer**: A responsive React (Vite) application providing a rich user interface.
+- **API Gateway/Entry Layer**: Express.js server acting as the entry point, handling routing and security.
+- **Service Layer**: Decoupled business logic services (AuthService, MobilityService, AnalyticsService).
+- **Data Layer**: Persistent PostgreSQL storage for structured data (Users, Trips).
+- **Event Processing Layer**: An internal event queue and background worker for asynchronous task processing.
+- **Observability Layer**: Centralized logging using Winston to track system health and errors.
 
 ```mermaid
 graph TD
-    User((Mobile User)) -->|HTTPS/JWT| WebUI[React Frontend]
+    User((Mobile/Web User)) -->|HTTPS/JWT| WebUI[React Frontend]
     WebUI -->|API Calls| API[Express API Gateway]
     
     subgraph "Backend Services"
@@ -18,7 +29,7 @@ graph TD
     subgraph "Data & Processing"
         Mobility -->|Enqueue| Queue[Event Queue]
         Queue -->|Process| Worker[Background Worker]
-        Worker -->|Update| DB[(JSON Persistence)]
+        Worker -->|Update| DB[(PostgreSQL)]
         Simulator[Vehicle Simulator] -->|Real-time Data| DB
         Auth -.-> DB
         Analytics -.-> DB
@@ -31,24 +42,70 @@ graph TD
     end
 ```
 
-The system follows a modular **Service-Based Architecture** (similar to MVC):
+## ☁️ AWS Architecture Design
 
-- **Routes**: Handle HTTP endpoints and delegate to controllers.
-- **Controllers**: Manage request/response lifecycle.
-- **Services**: Contain the core business logic (Auth, Mobility, Analytics).
-- **Models**: Act as an abstraction layer for data persistence.
-- **Background Worker**: Processes event queues (simulating Big Data pipelines).
-- **Vehicle Simulator**: Generates real-time mobility data every 3 seconds.
+This prototype maps directly to professional AWS managed services, providing a clear path from development to production.
 
-## ☁️ Cloud Mapping
+- **Compute**: Currently hosted on **AWS EC2** (t2.micro). In production, this would scale to **AWS ECS** or **EKS** for container orchestration.
+- **Containerization**: **Docker** ensures consistent environments across local development and EC2 deployment.
+- **Database**: PostgreSQL is currently containerized. Production environments would utilize **Amazon RDS (PostgreSQL)** for automated backups and Multi-AZ high availability.
+- **Asynchronous Messaging**: The internal queue mimics **Amazon SQS** or **Amazon MSK (Kafka)**, decoupling trip creation from intensive processing.
+- **Networking**: Deployment within an **AWS VPC** using public subnets for the web/API layer and private subnets for the database layer.
+- **Load Balancing**: An **Application Load Balancer (ALB)** would handle SSL termination and distribute traffic across multiple EC2 instances.
+- **Security**: Controlled via **AWS Security Groups** (limiting ports 22, 3000, 5173) and **IAM Roles** for resource access.
 
-This project is designed to mirror real-world cloud architectures:
+## 🔒 Networking & Security
 
-- **AWS EC2 (Compute)**: The backend and frontend can be deployed on EC2 instances.
-- **Docker (Containerization)**: Both components are container-ready for consistent deployment.
-- **PostgreSQL (Persistence)**: Using **PostgreSQL 15** for reliable, relational data storage. In production, this would be swapped for **Amazon RDS (PostgreSQL)**.
-- **Event Queue (Messaging)**: The internal memory-based queue represents **Amazon SQS** or **Apache Kafka** for decoupled processing.
-- **Winston (Observability)**: Standard logging practice, which would be integrated with **AWS CloudWatch** in production.
+- **VPC Design**: The system is designed to reside in a Virtual Private Cloud (VPC).
+- **API Exposure**: Access is strictly controlled through specific port exposures:
+    - `Port 22`: Secure SSH access for administration.
+    - `Port 3000`: Backend API access.
+    - `Port 5173`: Frontend development server access.
+- **Authentication**: **JWT (JSON Web Tokens)** are used for stateless authentication. Tokens are stored in `localStorage` and sent via the `Authorization` header.
+- **Secret Management**: Environment variables are managed via `.env`. Future iterations will integrate **AWS Secrets Manager** for rotation and enhanced security.
+
+## 📈 Scalability & High Availability
+
+- **Horizontal Scaling**: The stateless Express backend allows for horizontal scaling (adding more instances) via **AWS Auto Scaling**.
+- **Container Portability**: Docker allows the entire stack to be moved between cloud providers or on-premise servers without code changes.
+- **Availability Zones**: Production deployment would span multiple **Availability Zones (AZs)** to ensure 99.9% uptime.
+- **Database Resilience**: Managed via RDS read-replicas to handle high read traffic and provide failover capability.
+
+## 📊 Data & Event Architecture
+
+- **Structured Storage**: PostgreSQL ensures data integrity for users and trip history.
+- **Event-Driven Workflow**: When a trip is created, an event is pushed to the queue. The background worker processes this independently, ensuring the user receives a fast response.
+- **Real-time Simulation**: A dedicated service simulates real-time vehicle movement, providing a dynamic data source for analytics.
+
+## 👁️ Observability & Monitoring
+
+- **Logging**: **Winston** provides structured JSON logs.
+- **Persistence**: Logs are rotated and stored in `logs/app.log` (info) and `logs/error.log` (errors).
+- **Future Integration**: In production, these logs would be streamed to **Amazon CloudWatch** for real-time alerting and dashboarding.
+
+## 🛡️ Disaster Recovery
+
+- **Backup Policy**: Prototype backups involve volume snapshots. Production uses **RDS Automated Snapshots** with a 30-day retention.
+- **Recovery Time Objective (RTO)**: Designed for rapid recovery via Docker image redeployment.
+- **Failover**: Conceptual integration with **Amazon Route 53** for cross-region failover.
+
+## 💰 Cost Optimization
+
+- **Resource Efficiency**: Optimized for the **AWS Free Tier** (t2.micro).
+- **Lean Containers**: Using `node:18-slim` to minimize image size and storage costs.
+- **On-Demand Scaling**: Architecture supports scaling down during low-traffic periods to minimize operational costs.
+
+## 🔄 Prototype vs. Production Mapping
+
+| Component | Prototype (Current) | Production (AWS Managed) |
+| :--- | :--- | :--- |
+| **Compute** | EC2 Instance | AWS ECS / EKS / Fargate |
+| **Database** | Dockerized PostgreSQL | Amazon RDS (PostgreSQL) |
+| **Queue** | In-memory Array | Amazon SQS / Amazon MSK |
+| **Logging** | Local File System | Amazon CloudWatch Logs |
+| **Load Balancer**| Direct IP Access | Application Load Balancer (ALB) |
+| **Secrets** | `.env` file | AWS Secrets Manager |
+| **Frontend** | Vite Dev Server | Amazon S3 + CloudFront |
 
 ## 🛠 Tech Stack
 
@@ -56,19 +113,6 @@ This project is designed to mirror real-world cloud architectures:
 - **Frontend**: React (Vite), Axios, Framer Motion, Lucide React.
 - **Database**: PostgreSQL.
 - **DevOps**: Docker, Docker Compose.
-
-## 🔒 Security Implementation
-
-- **Identity & Access Management**: Implemented using JWT (JSON Web Tokens) with a `devsecret` key.
-- **Protected API Exposure**: Express middleware checks for valid `Authorization: Bearer <token>` on all mobility and analytics routes.
-- **Data Protection**: User data is isolated, and trips are associated with specific `userId`s to prevent unauthorized access.
-- **Secure Configuration**: Critical secrets are managed via `.env` variables.
-
-## 📈 Scalability & High Availability Strategy
-
-- **Stateless Backend**: The Express server is designed to be stateless, allowing it to scale horizontally behind a Load Balancer (like AWS ELB).
-- **Decoupled Processing**: Using an event-driven worker pattern ensures that heavy trip processing doesn't block the main API response.
-- **Database Abstraction**: While currently using JSON for the prototype, the `models/` layer can be seamlessly swapped with **Amazon RDS** or **DynamoDB** for high availability.
 
 ## 🚀 Getting Started
 
@@ -102,6 +146,7 @@ docker-compose up --build
 ## 📈 API Endpoints
 
 - `GET /`: Health check and status.
+- `GET /health`: Detailed status check.
 - `POST /auth/register`: Create a new user.
 - `POST /auth/login`: Get JWT token.
 - `POST /mobility/trip`: Create a new trip (Auth required).
