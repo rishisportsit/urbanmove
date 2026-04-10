@@ -23,49 +23,42 @@ graph TB
 
     subgraph "AWS Cloud (Region: eu-north-1)"
         subgraph "VPC (10.0.0.0/16)"
-            subgraph "Public Subnet (Availability Zone A)"
+            subgraph "Public Subnet (10.0.1.0/24)"
                 IGW[Internet Gateway]
                 ALB[Application Load Balancer]
-                Front[React Frontend - Port 5173/80]
-            end
-
-            subgraph "Private Subnet (Availability Zone A)"
-                subgraph "Docker Container Cluster (ECS/EC2)"
-                    API[Express API Gateway - Port 3000]
-                    subgraph "Microservices"
-                        Auth[Auth Service]
-                        Mobility[Mobility Service]
-                        Analytics[Analytics Service]
+                
+                subgraph "EC2 Instance (t2.micro - Ubuntu 22.04)"
+                    direction TB
+                    subgraph "Security Group (sg-0123456)"
+                        subgraph "Docker Runtime"
+                            Front[Frontend Container - Port 5173]
+                            Back[Backend API Container - Port 3000]
+                            DB[(PostgreSQL Container - Port 5432)]
+                            Worker[Worker & Simulator Threads]
+                        end
                     end
-                    subgraph "Background Processing"
-                        Queue[Internal Event Queue]
-                        Worker[Background Worker]
-                        Sim[Vehicle Simulator]
-                    end
+                    EBS[EBS Volume - Root/Data Storage]
                 end
-            end
-
-            subgraph "Database Subnet (Private)"
-                DB[(PostgreSQL Database - Port 5432)]
             end
         end
 
-        subgraph "Cloud Observability"
-            Logs[Winston Logs] --> CW[Amazon CloudWatch]
+        subgraph "AWS Management & Observability"
+            IAM[IAM Role: UrbanMove-EC2-Role]
+            CW[Amazon CloudWatch: Logs/Metrics]
+            ECR[Amazon ECR: Docker Registry]
         end
     end
 
     %% Communication Flows
-    User -->|HTTPS/JWT| ALB
-    ALB --> Front
-    ALB --> API
-    API --> Auth & Mobility & Analytics
-    Mobility -->|Push Events| Queue
-    Queue -->|Process| Worker
-    Worker -->|Read/Write| DB
-    Sim -->|Real-time Data| DB
-    Auth & Analytics -->|Query| DB
-    API -.-> Logs
+    User -->|HTTPS - Port 443| ALB
+    ALB -->|Forward - Port 5173| Front
+    ALB -->|Forward - Port 3000| Back
+    Front -->|API Calls| Back
+    Back -->|SQL Queries| DB
+    Back -->|Log Streams| CW
+    Back -.-> Worker
+    IAM -.-> EC2
+    ECR -->|Pull Images| EC2
 
     %% Styling
     style IGW fill:#f9f,stroke:#333,stroke-width:2px
@@ -73,7 +66,8 @@ graph TB
     style DB fill:#f96,stroke:#333,stroke-width:2px
     style CW fill:#9f9,stroke:#333,stroke-width:2px
     style Front fill:#6cf,stroke:#333,stroke-width:2px
-    style API fill:#6cf,stroke:#333,stroke-width:2px
+    style Back fill:#6cf,stroke:#333,stroke-width:2px
+    style EBS fill:#ddd,stroke:#333,stroke-dasharray: 5 5
 ```
 
 ## ☁️ AWS Architecture Design
@@ -88,7 +82,28 @@ This prototype maps directly to professional AWS managed services, providing a c
 - **Load Balancing**: An **Application Load Balancer (ALB)** would handle SSL termination and distribute traffic across multiple EC2 instances.
 - **Security**: Controlled via **AWS Security Groups** (limiting ports 22, 3000, 5173) and **IAM Roles** for resource access.
 
-## 🔒 Networking & Security
+## ☁️ AWS Infrastructure Details
+
+### Compute Layer (EC2)
+- **Instance Type**: `t2.micro` (Burstability support, Free Tier eligible).
+- **Operating System**: Ubuntu Server 22.04 LTS.
+- **Runtime Environment**: **Docker Engine** and **Docker Compose** installed to orchestrate multi-container deployment.
+- **Storage**: **Amazon EBS (Elastic Block Store)** 8GB General Purpose SSD (gp3) for root filesystem and persistent data volumes.
+
+### Networking & Security
+- **VPC (Virtual Private Cloud)**: Custom 10.0.0.0/16 network providing complete isolation.
+- **Security Groups (Firewall)**:
+    - `Inbound`: Port 22 (SSH), Port 80 (HTTP), Port 3000 (Backend), Port 5173 (Frontend).
+    - `Outbound`: All traffic allowed for package updates and API integrations.
+- **IAM (Identity and Access Management)**: EC2 instance profile with specific permissions to stream logs to **CloudWatch**.
+
+### Container Orchestration
+The project uses a "Single-Node Container Cluster" approach on EC2:
+1. **Frontend Container**: Nginx/Vite serving the React application.
+2. **Backend Container**: Node.js Express API.
+3. **Database Container**: PostgreSQL instance with mapped EBS volumes for persistence.
+
+## 🔒 Security Implementation
 
 - **VPC Design**: The system is designed to reside in a Virtual Private Cloud (VPC).
 - **API Exposure**: Access is strictly controlled through specific port exposures:
