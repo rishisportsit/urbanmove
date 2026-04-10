@@ -1,4 +1,4 @@
-# UrbanMove 🚀 - Smart Mobility Platform
+# UrbanMove  - Smart Mobility Platform
 
 UrbanMove is a production-ready cloud-native backend and frontend prototype for a smart mobility platform. It handles user authentication, trip management, real-time vehicle simulation, and analytics.
 
