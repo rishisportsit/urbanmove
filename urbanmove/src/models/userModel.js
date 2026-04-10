@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 function createUser(name, email) {
   const user = { id: uuidv4(), name, email };
   db.users.push(user);
+  db.save();
   return user;
 }
 

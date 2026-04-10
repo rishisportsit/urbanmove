@@ -6,6 +6,7 @@ function createTrip({ from, to, distance, userId }) {
   const createdAt = new Date().toISOString();
   const trip = { id, from, to, distance, userId, createdAt };
   db.trips.push(trip);
+  db.save();
   return trip;
 }
 

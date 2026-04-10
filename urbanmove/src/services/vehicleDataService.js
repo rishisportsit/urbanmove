@@ -21,6 +21,7 @@ function tick() {
     };
     db.vehicleData[id] = data;
   });
+  db.save();
 }
 
 function start() {

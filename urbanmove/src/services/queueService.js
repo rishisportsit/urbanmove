@@ -2,10 +2,13 @@ const db = require('../utils/db');
 
 function enqueue(event) {
   db.events.push(event);
+  db.save();
 }
 
 function dequeue() {
-  return db.events.shift();
+  const event = db.events.shift();
+  if (event) db.save();
+  return event;
 }
 
 function size() {
