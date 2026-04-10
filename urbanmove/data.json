@@ -250,48 +250,48 @@
     },
     "cd809f32-0d13-4490-a639-abb0d6f4344a": {
       "vehicleId": "cd809f32-0d13-4490-a639-abb0d6f4344a",
-      "speed": 65,
+      "speed": 77,
       "location": {
-        "lat": -52.195074,
-        "lng": 0.262273
+        "lat": -86.462473,
+        "lng": 106.505208
       },
-      "timestamp": "2026-04-10T21:11:41.626Z"
+      "timestamp": "2026-04-10T21:12:17.638Z"
     },
     "8ef7cd06-6485-42ca-b3a0-403ff1febfc1": {
       "vehicleId": "8ef7cd06-6485-42ca-b3a0-403ff1febfc1",
-      "speed": 75,
+      "speed": 36,
       "location": {
-        "lat": -48.300334,
-        "lng": -137.949106
+        "lat": 39.403539,
+        "lng": -2.856114
       },
-      "timestamp": "2026-04-10T21:11:41.626Z"
+      "timestamp": "2026-04-10T21:12:17.638Z"
     },
     "4f6edda6-4aa6-43c3-98ed-8a2f93cfd96a": {
       "vehicleId": "4f6edda6-4aa6-43c3-98ed-8a2f93cfd96a",
-      "speed": 36,
+      "speed": 68,
       "location": {
-        "lat": -65.177823,
-        "lng": 115.989469
+        "lat": 46.269551,
+        "lng": -41.888445
       },
-      "timestamp": "2026-04-10T21:11:41.626Z"
+      "timestamp": "2026-04-10T21:12:17.638Z"
     },
     "edd84197-02f1-461e-a8d2-c7a608b54606": {
       "vehicleId": "edd84197-02f1-461e-a8d2-c7a608b54606",
-      "speed": 28,
+      "speed": 71,
       "location": {
-        "lat": -79.481094,
-        "lng": 95.266253
+        "lat": -22.874826,
+        "lng": 64.951304
       },
-      "timestamp": "2026-04-10T21:11:41.626Z"
+      "timestamp": "2026-04-10T21:12:17.638Z"
     },
     "95b8803a-e822-4229-a8c9-d9ba861ba508": {
       "vehicleId": "95b8803a-e822-4229-a8c9-d9ba861ba508",
-      "speed": 31,
+      "speed": 17,
       "location": {
-        "lat": -24.273026,
-        "lng": 174.058017
+        "lat": 32.772436,
+        "lng": 39.279001
       },
-      "timestamp": "2026-04-10T21:11:41.626Z"
+      "timestamp": "2026-04-10T21:12:17.638Z"
     }
   }
 }
