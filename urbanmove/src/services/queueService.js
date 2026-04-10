@@ -1,18 +1,15 @@
 const db = require('../utils/db');
 
 function enqueue(event) {
-  db.events.push(event);
-  db.save();
+  db.memoryStore.events.push(event);
 }
 
 function dequeue() {
-  const event = db.events.shift();
-  if (event) db.save();
-  return event;
+  return db.memoryStore.events.shift();
 }
 
 function size() {
-  return db.events.length;
+  return db.memoryStore.events.length;
 }
 
 module.exports = { enqueue, dequeue, size };

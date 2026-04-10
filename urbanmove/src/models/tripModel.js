@@ -1,21 +1,44 @@
 const db = require('../utils/db');
 const { v4: uuidv4 } = require('uuid');
 
-function createTrip({ from, to, distance, userId }) {
+async function createTrip({ from, to, distance, userId }) {
   const id = uuidv4();
-  const createdAt = new Date().toISOString();
-  const trip = { id, from, to, distance, userId, createdAt };
-  db.trips.push(trip);
-  db.save();
-  return trip;
+  const query = 'INSERT INTO trips(id, "from", "to", distance, user_id) VALUES($1, $2, $3, $4, $5) RETURNING *';
+  const values = [id, from, to, distance, userId];
+  const res = await db.query(query, values);
+  const row = res.rows[0];
+  return { 
+    id: row.id, 
+    from: row.from, 
+    to: row.to, 
+    distance: row.distance, 
+    userId: row.user_id, 
+    createdAt: row.created_at 
+  };
 }
 
-function getAllTrips() {
-  return db.trips.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+async function getAllTrips() {
+  const query = 'SELECT id, "from", "to", distance, user_id as "userId", created_at as "createdAt" FROM trips ORDER BY created_at DESC';
+  const res = await db.query(query);
+  return res.rows;
 }
 
-function getTripsByUserId(userId) {
-  return db.trips.filter(t => t.userId === userId);
+async function getTripsByUserId(userId) {
+  const query = 'SELECT id, "from", "to", distance, user_id as "userId", created_at as "createdAt" FROM trips WHERE user_id = $1 ORDER BY created_at DESC';
+  const res = await db.query(query, [userId]);
+  return res.rows;
 }
 
-module.exports = { createTrip, getAllTrips, getTripsByUserId };
+async function getTripsCount() {
+  const query = 'SELECT COUNT(*) FROM trips';
+  const res = await db.query(query);
+  return parseInt(res.rows[0].count, 10);
+}
+
+async function getAverageDistance() {
+  const query = 'SELECT AVG(distance) FROM trips';
+  const res = await db.query(query);
+  return parseFloat(res.rows[0].avg) || 0;
+}
+
+module.exports = { createTrip, getAllTrips, getTripsByUserId, getTripsCount, getAverageDistance };

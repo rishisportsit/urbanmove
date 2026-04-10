@@ -4,6 +4,33 @@ UrbanMove is a production-ready cloud-native backend and frontend prototype for 
 
 ## 🏗 Architecture Overview
 
+```mermaid
+graph TD
+    User((Mobile User)) -->|HTTPS/JWT| WebUI[React Frontend]
+    WebUI -->|API Calls| API[Express API Gateway]
+    
+    subgraph "Backend Services"
+        API --> Auth[Auth Service]
+        API --> Mobility[Mobility Service]
+        API --> Analytics[Analytics Service]
+    end
+    
+    subgraph "Data & Processing"
+        Mobility -->|Enqueue| Queue[Event Queue]
+        Queue -->|Process| Worker[Background Worker]
+        Worker -->|Update| DB[(JSON Persistence)]
+        Simulator[Vehicle Simulator] -->|Real-time Data| DB
+        Auth -.-> DB
+        Analytics -.-> DB
+    end
+    
+    subgraph "Observability"
+        API --> Logger[Winston Logger]
+        Logger --> AppLog[app.log]
+        Logger --> ErrLog[error.log]
+    end
+```
+
 The system follows a modular **Service-Based Architecture** (similar to MVC):
 
 - **Routes**: Handle HTTP endpoints and delegate to controllers.
@@ -19,15 +46,29 @@ This project is designed to mirror real-world cloud architectures:
 
 - **AWS EC2 (Compute)**: The backend and frontend can be deployed on EC2 instances.
 - **Docker (Containerization)**: Both components are container-ready for consistent deployment.
-- **JSON Storage (Persistence)**: Currently using `data.json`. In a real production system, this would be swapped for **Amazon RDS (PostgreSQL)** or **MongoDB Atlas**.
-- **Event Queue (Messaging)**: The internal array-based queue represents **Amazon SQS** or **Apache Kafka** for decoupled processing.
+- **PostgreSQL (Persistence)**: Using **PostgreSQL 15** for reliable, relational data storage. In production, this would be swapped for **Amazon RDS (PostgreSQL)**.
+- **Event Queue (Messaging)**: The internal memory-based queue represents **Amazon SQS** or **Apache Kafka** for decoupled processing.
 - **Winston (Observability)**: Standard logging practice, which would be integrated with **AWS CloudWatch** in production.
 
 ## 🛠 Tech Stack
 
-- **Backend**: Node.js, Express.js, JWT, Winston, UUID.
-- **Frontend**: React (Vite), Axios.
+- **Backend**: Node.js, Express.js, JWT, Winston, UUID, node-postgres (pg).
+- **Frontend**: React (Vite), Axios, Framer Motion, Lucide React.
+- **Database**: PostgreSQL.
 - **DevOps**: Docker, Docker Compose.
+
+## 🔒 Security Implementation
+
+- **Identity & Access Management**: Implemented using JWT (JSON Web Tokens) with a `devsecret` key.
+- **Protected API Exposure**: Express middleware checks for valid `Authorization: Bearer <token>` on all mobility and analytics routes.
+- **Data Protection**: User data is isolated, and trips are associated with specific `userId`s to prevent unauthorized access.
+- **Secure Configuration**: Critical secrets are managed via `.env` variables.
+
+## 📈 Scalability & High Availability Strategy
+
+- **Stateless Backend**: The Express server is designed to be stateless, allowing it to scale horizontally behind a Load Balancer (like AWS ELB).
+- **Decoupled Processing**: Using an event-driven worker pattern ensures that heavy trip processing doesn't block the main API response.
+- **Database Abstraction**: While currently using JSON for the prototype, the `models/` layer can be seamlessly swapped with **Amazon RDS** or **DynamoDB** for high availability.
 
 ## 🚀 Getting Started
 
@@ -70,6 +111,45 @@ docker-compose up --build
 
 - `logs/app.log`: General application activity.
 - `logs/error.log`: Error stack traces and issues.
+
+## ☁️ AWS EC2 Deployment Guide
+
+To deploy this platform to an AWS EC2 instance, follow these steps:
+
+### 1. Launch an EC2 Instance
+- **AMI**: Ubuntu Server 22.04 LTS (Recommended).
+- **Instance Type**: t2.micro (Free Tier eligible).
+- **Security Group**: Allow **Inbound Rules** for:
+  - SSH (Port 22) - for access.
+  - HTTP (Port 80) - for web traffic (if using a reverse proxy).
+  - Custom TCP (Port 3000) - for the Backend API.
+  - Custom TCP (Port 5173) - for the Frontend (if running in dev mode) or Port 80 for production build.
+
+### 2. Connect to your Instance
+```bash
+ssh -i your-key.pem ubuntu@your-ec2-ip
+```
+
+### 3. Install Dependencies (Docker approach recommended)
+```bash
+sudo apt update
+sudo apt install docker.io docker-compose -y
+sudo usermod -aG docker $USER
+# Log out and log back in for group changes to take effect
+```
+
+### 4. Clone and Run
+```bash
+git clone <your-repo-url>
+cd urbanmove
+docker-compose up -d --build
+```
+
+### 5. Update Frontend API URL
+In `frontend/src/App.jsx`, ensure the `API_BASE_URL` is set to your EC2 Public IP:
+```javascript
+const API_BASE_URL = 'http://YOUR_EC2_IP:3000';
+```
 
 ---
 *Created for University Cloud Computing Project - 2026*

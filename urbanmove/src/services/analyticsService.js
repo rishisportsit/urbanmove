@@ -1,22 +1,25 @@
-const db = require('../utils/db');
+const trips = require('../models/tripModel');
 const vehicle = require('./vehicleDataService');
 
-function totalTrips() {
-  return db.trips.length;
+async function totalTrips() {
+  return await trips.getTripsCount();
 }
 
-function averageDistance() {
-  if (db.trips.length === 0) return 0;
-  const sum = db.trips.reduce((a, t) => a + Number(t.distance || 0), 0);
-  return sum / db.trips.length;
+async function averageDistance() {
+  return await trips.getAverageDistance();
 }
 
 function totalActiveVehicles() {
   return vehicle.getActiveVehicleCount();
 }
 
-function getAnalytics() {
-  return { totalTrips: totalTrips(), averageDistance: averageDistance(), totalActiveVehicles: totalActiveVehicles() };
+async function getAnalytics() {
+  const [total, avg] = await Promise.all([totalTrips(), averageDistance()]);
+  return { 
+    totalTrips: total, 
+    averageDistance: avg, 
+    totalActiveVehicles: totalActiveVehicles() 
+  };
 }
 
 module.exports = { getAnalytics };

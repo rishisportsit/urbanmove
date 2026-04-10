@@ -1,48 +1,48 @@
-const fs = require('fs');
-const path = require('path');
+const { Pool } = require('pg');
+const logger = require('./logger');
 
-const DATA_FILE = path.join(__dirname, '../../data.json');
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: process.env.PGPORT,
+});
 
-// Default structure
-const defaultData = {
-  users: [],
-  trips: [],
+// Ephemeral in-memory structures for simulation/worker
+const memoryStore = {
   events: [],
   vehicleData: {}
 };
 
-// Initialize file if not exists
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2));
-}
-
-// Read data
-const readData = () => {
+const initDb = async () => {
+  const client = await pool.connect();
   try {
-    const content = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(content);
-  } catch (error) {
-    console.error('Error reading data file:', error);
-    return defaultData;
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS trips (
+        id UUID PRIMARY KEY,
+        "from" TEXT NOT NULL,
+        "to" TEXT NOT NULL,
+        distance FLOAT NOT NULL,
+        user_id UUID REFERENCES users(id),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    logger.info('PostgreSQL tables initialized or already exist.');
+  } catch (err) {
+    logger.error('Error initializing PostgreSQL tables:', err);
+  } finally {
+    client.release();
   }
 };
 
-// Write data
-const writeData = (data) => {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Error writing to data file:', error);
-  }
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+  initDb,
+  memoryStore
 };
-
-// Proxied DB to handle automatic saves (simple version)
-const db = readData();
-
-// We need a way to trigger save, since in-memory arrays are modified directly.
-// To keep it simple for the user, I'll provide a save method or wrap the arrays.
-// But given the MVC structure, services call model methods, so models should call save.
-
-db.save = () => writeData(db);
-
-module.exports = db;

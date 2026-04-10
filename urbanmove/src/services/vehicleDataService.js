@@ -19,9 +19,8 @@ function tick() {
       location: { lat: randomCoord(-90, 90), lng: randomCoord(-180, 180) },
       timestamp: new Date().toISOString()
     };
-    db.vehicleData[id] = data;
+    db.memoryStore.vehicleData[id] = data;
   });
-  db.save();
 }
 
 function start() {
@@ -32,11 +31,11 @@ function start() {
 }
 
 function getActiveVehicleCount() {
-  return Object.keys(db.vehicleData).length;
+  return Object.keys(db.memoryStore.vehicleData).length;
 }
 
 function getLatestData() {
-  return Object.values(db.vehicleData);
+  return Object.values(db.memoryStore.vehicleData);
 }
 
 module.exports = { start, getActiveVehicleCount, getLatestData };
