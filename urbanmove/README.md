@@ -16,30 +16,64 @@ UrbanMove implements a multi-layer cloud-native architecture designed for scalab
 - **Observability Layer**: Centralized logging using Winston to track system health and errors.
 
 ```mermaid
-graph TD
-    User((Mobile/Web User)) -->|HTTPS/JWT| WebUI[React Frontend]
-    WebUI -->|API Calls| API[Express API Gateway]
-    
-    subgraph "Backend Services"
-        API --> Auth[Auth Service]
-        API --> Mobility[Mobility Service]
-        API --> Analytics[Analytics Service]
+graph TB
+    subgraph "Public Internet"
+        User((User Browser))
     end
-    
-    subgraph "Data & Processing"
-        Mobility -->|Enqueue| Queue[Event Queue]
-        Queue -->|Process| Worker[Background Worker]
-        Worker -->|Update| DB[(PostgreSQL)]
-        Simulator[Vehicle Simulator] -->|Real-time Data| DB
-        Auth -.-> DB
-        Analytics -.-> DB
+
+    subgraph "AWS Cloud (Region: eu-north-1)"
+        subgraph "VPC (10.0.0.0/16)"
+            subgraph "Public Subnet (Availability Zone A)"
+                IGW[Internet Gateway]
+                ALB[Application Load Balancer]
+                Front[React Frontend - Port 5173/80]
+            end
+
+            subgraph "Private Subnet (Availability Zone A)"
+                subgraph "Docker Container Cluster (ECS/EC2)"
+                    API[Express API Gateway - Port 3000]
+                    subgraph "Microservices"
+                        Auth[Auth Service]
+                        Mobility[Mobility Service]
+                        Analytics[Analytics Service]
+                    end
+                    subgraph "Background Processing"
+                        Queue[Internal Event Queue]
+                        Worker[Background Worker]
+                        Sim[Vehicle Simulator]
+                    end
+                end
+            end
+
+            subgraph "Database Subnet (Private)"
+                DB[(PostgreSQL Database - Port 5432)]
+            end
+        end
+
+        subgraph "Cloud Observability"
+            Logs[Winston Logs] --> CW[Amazon CloudWatch]
+        end
     end
-    
-    subgraph "Observability"
-        API --> Logger[Winston Logger]
-        Logger --> AppLog[app.log]
-        Logger --> ErrLog[error.log]
-    end
+
+    %% Communication Flows
+    User -->|HTTPS/JWT| ALB
+    ALB --> Front
+    ALB --> API
+    API --> Auth & Mobility & Analytics
+    Mobility -->|Push Events| Queue
+    Queue -->|Process| Worker
+    Worker -->|Read/Write| DB
+    Sim -->|Real-time Data| DB
+    Auth & Analytics -->|Query| DB
+    API -.-> Logs
+
+    %% Styling
+    style IGW fill:#f9f,stroke:#333,stroke-width:2px
+    style ALB fill:#69f,stroke:#333,stroke-width:2px
+    style DB fill:#f96,stroke:#333,stroke-width:2px
+    style CW fill:#9f9,stroke:#333,stroke-width:2px
+    style Front fill:#6cf,stroke:#333,stroke-width:2px
+    style API fill:#6cf,stroke:#333,stroke-width:2px
 ```
 
 ## ☁️ AWS Architecture Design
