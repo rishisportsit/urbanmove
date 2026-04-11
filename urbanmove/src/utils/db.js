@@ -2,47 +2,25 @@ const { Pool } = require('pg');
 const logger = require('./logger');
 
 const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: process.env.PGPORT,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  // Add production-ready settings
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
 });
 
-// Ephemeral in-memory structures for simulation/worker
+// Ephemeral memory for simulation events and vehicle data
 const memoryStore = {
   events: [],
   vehicleData: {}
 };
 
-const initDb = async () => {
-  const client = await pool.connect();
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS trips (
-        id UUID PRIMARY KEY,
-        "from" TEXT NOT NULL,
-        "to" TEXT NOT NULL,
-        distance FLOAT NOT NULL,
-        user_id UUID REFERENCES users(id),
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    logger.info('PostgreSQL tables initialized or already exist.');
-  } catch (err) {
-    logger.error('Error initializing PostgreSQL tables:', err);
-  } finally {
-    client.release();
-  }
-};
-
 module.exports = {
   query: (text, params) => pool.query(text, params),
-  initDb,
+  pool,
   memoryStore
 };

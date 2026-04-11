@@ -1,35 +1,26 @@
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: urbanmove_db
-    restart: always
-    environment:
-      POSTGRES_USER: ${PGUSER:-urbanmove_user}
-      POSTGRES_PASSWORD: ${PGPASSWORD:-urbanmove_password}
-      POSTGRES_DB: ${PGDATABASE:-urbanmove_db}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   backend:
     build: .
     container_name: urbanmove_backend
-    depends_on:
-      - db
     ports:
       - "3000:3000"
     environment:
-      - PGUSER=${PGUSER:-urbanmove_user}
-      - PGHOST=db
-      - PGDATABASE=${PGDATABASE:-urbanmove_db}
-      - PGPASSWORD=${PGPASSWORD:-urbanmove_password}
-      - PGPORT=5432
+      - DB_USER=${DB_USER}
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_PASS=${DB_PASS}
+      - DB_PORT=${DB_PORT}
       - JWT_SECRET=${JWT_SECRET:-urbanmove_secret_key}
       - PORT=3000
     volumes:
       - ./logs:/app/logs
     restart: always
 
-volumes:
-  postgres_data:
+  frontend:
+    build: ./frontend
+    container_name: urbanmove_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: always

@@ -7,13 +7,13 @@ async function register(name, email) {
     err.status = 400;
     throw err;
   }
-  const existing = users.findByEmail(email);
+  const existing = await users.findByEmail(email);
   if (existing) {
     const err = new Error('email already registered');
     err.status = 409;
     throw err;
   }
-  const user = users.createUser(name, email);
+  const user = await users.createUser(name, email);
   return user;
 }
 
@@ -23,7 +23,7 @@ async function login(email) {
     err.status = 400;
     throw err;
   }
-  const user = users.findByEmail(email);
+  const user = await users.findByEmail(email);
   if (!user) {
     const err = new Error('invalid credentials');
     err.status = 401;
