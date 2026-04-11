@@ -1,12 +1,13 @@
 const trips = require('../models/tripModel');
+const users = require('../models/userModel');
 const vehicle = require('./vehicleDataService');
 
 async function totalTrips() {
   return await trips.getTripsCount();
 }
 
-async function averageDistance() {
-  return await trips.getAverageDistance();
+async function totalUsers() {
+  return await users.getUsersCount();
 }
 
 function totalActiveVehicles() {
@@ -14,10 +15,10 @@ function totalActiveVehicles() {
 }
 
 async function getAnalytics() {
-  const [total, avg] = await Promise.all([totalTrips(), averageDistance()]);
+  const [tTrips, tUsers] = await Promise.all([totalTrips(), totalUsers()]);
   return { 
-    totalTrips: total, 
-    averageDistance: avg, 
+    totalTrips: tTrips, 
+    totalUsers: tUsers, 
     totalActiveVehicles: totalActiveVehicles() 
   };
 }

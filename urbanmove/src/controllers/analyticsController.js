@@ -1,8 +1,8 @@
 const analyticsService = require('../services/analyticsService');
 
-function get(req, res, next) {
+async function get(req, res, next) {
   try {
-    const stats = analyticsService.getAnalytics();
+    const stats = await analyticsService.getAnalytics();
     res.json(stats);
   } catch (e) {
     next(e);

@@ -13,6 +13,10 @@ const pool = new Pool({
   connectionTimeoutMillis: 10000,
 });
 
+pool.on('error', (err, client) => {
+  logger.error('Unexpected error on idle DB client', err);
+});
+
 // Ephemeral memory for simulation events and vehicle data
 const memoryStore = {
   events: [],
